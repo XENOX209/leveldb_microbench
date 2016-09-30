@@ -1,10 +1,10 @@
-#define PROCESS_NUM 1
-#define OP_NUM 100
+#define PROCESS_NUM 10
+#define OP_NUM 10000
 // OP/PROCESS
-#define KEY_RANGE 100
+#define KEY_RANGE 1000
 #define ITEM_SIZE 100
 
-#define SET_OR_GET 4 
+#define SET_OR_GET 3 
 // default: 3 
 // set only 1, get only 2, set and get 3 
 #define PERCENT_OF_SET 50
@@ -109,7 +109,7 @@ void* bench(void *vp)
 				calc.tv_sec =  e.tv_sec - s.tv_sec;
 				calc.tv_usec = e.tv_usec - s.tv_usec;
 				p->gtime.push_back(calc);
-				printf("now %d, %d\n",count,ran);
+				//printf("now %d, %d\n",count,ran);
 			}
 			break;
 		case 4:// set data
@@ -122,7 +122,7 @@ void* bench(void *vp)
 				assert(status.ok());
 				//printf("now %d/%d\n",count,KEY_RANGE);
 			}
-			printf("put all key rabge\n");
+			printf("put all key range\n");
 			break;
 		default:
 			printf("SET_OR_GET is error\n");
@@ -166,9 +166,10 @@ int main(int argc,char *argv[])
 	assert(status.ok());
 
 	g_dataset(&data);
+
 	// setdata
 	////////////////////////////////////////////////////////
-	/*
+	
 	for(count=0;count<PROCESS_NUM;count++)
 	{
 		vpd[count].db=db;
@@ -181,8 +182,8 @@ int main(int argc,char *argv[])
 	{
 		pthread_join(plist[count],NULL);
 	}
-	printf("end\n");
-	*/
+	printf("init data set end\n");
+	
 	//////////////////////////////////////////////////////////
 	// bench
 	for(count=0;count<PROCESS_NUM;count++)
@@ -197,7 +198,7 @@ int main(int argc,char *argv[])
 	{
 		pthread_join(plist[count],NULL);
 	}
-	printf("end\n");
+	printf("bench end\n");
 
 	if(set_or_get == 4)
 		return 0;
