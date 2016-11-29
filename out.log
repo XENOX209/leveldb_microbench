@@ -1,22 +1,21 @@
 wait
-put all key rabge
+put all key range
 end child process
-put all key rabge
+init data set end
+wait
 end child process
-put all key rabge
 end child process
-put all key rabge
 end child process
-put all key rabge
 end child process
-put all key rabge
 end child process
-put all key rabge
 end child process
-put all key rabge
 end child process
-put all key rabge
 end child process
-put all key rabge
 end child process
-end
+end child process
+bench end
+average set time: 0.014515
+average get time: 0.000000 
+var set time: 0.010718
+var get time: 0.000000 
+all throughput: 0.000000
