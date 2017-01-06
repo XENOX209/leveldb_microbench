@@ -1,11 +1,1 @@
-rm: cannot remove '/testdb/Disk1': Device or resource busy
-rm: cannot remove '/testdb/Disk2': Device or resource busy
-rm: cannot remove '/testdb/Disk3': Device or resource busy
-rm: cannot remove '/testdb/Disk4': Device or resource busy
-rm: cannot remove '/testdb/Disk5': Device or resource busy
-rm: cannot remove '/testdb/Disk6': Device or resource busy
-rm: cannot remove '/testdb/Disk7': Device or resource busy
-mkdir: cannot create directory ‘bench_log’: File exists
-mv: cannot stat 'current_get.txt': No such file or directory
-mv: cannot stat 'current_sumthr.txt': No such file or directory
-mv: cannot stat 'current_thr.txt': No such file or directory
+nohup: failed to run command './benchmark': No such file or directory

@@ -1,14 +1,14 @@
 
 //#define DEBUG
-//#define THR
+#define THR
 // count throughtput
 
 #ifdef THR
 	//if mode 5~ this is second
 	//for throughput
 	#define PROCESS_NUM 10
-	#define OP_NUM 600
-	//def 600 seconds
+	#define OP_NUM 60*30
+	//def 1800 seconds
 	#define SET_OR_GET 5
 	// default: 3 
 	// set only 1, get only 2, set and get 3 
@@ -17,7 +17,8 @@
 #else
 	//for latency
 	#define PROCESS_NUM 10
-	#define OP_NUM 100000
+	#define OP_NUM 10*1000*1000
+//	#define OP_NUM 1*1000*1000
 
 	#define SET_OR_GET 1
 	// default: 3 
@@ -26,11 +27,12 @@
 
 #endif
 
-
+#define VALUE_RANGE 1*1000
 // OP/PROCESS
-#define KEY_RANGE 1000
-#define ITEM_SIZE 100
-
+#define KEY_RANGE 1*1000*1000
+// Def 1KB
+//#define ITEM_SIZE 1000
+#define ITEM_SIZE 2*1000
 //For check
 //#define KEY_RANGE 10000
 //#define ITEM_SIZE 100
@@ -42,6 +44,7 @@
 
 
 #include <sys/time.h>
+#include <time.h>
 #include <vector>
 #include <time.h>
 #include <pthread.h>
@@ -55,15 +58,18 @@
 #include "leveldb/db.h"
 #include "process.h"
 
+
 struct pass_data{
 	leveldb::DB* db;
 	std::vector < timeval > stime;
 	std::vector < timeval > gtime;
 	std::vector < int >  thrtime;
 	int set_or_get;
+	int thread_num;
+	std::vector< std::string > value_set;
 };
 
-std::vector< std::string > data;
+//std::vector< std::string > data;
 //std::vector< std::vector < timeval > > all_time;
 
 leveldb::Status myget(leveldb::DB* db,std::string key,std::string* value){ 
@@ -72,6 +78,18 @@ leveldb::Status myget(leveldb::DB* db,std::string key,std::string* value){
 
 leveldb::Status myput(leveldb::DB* db,std::string key,std::string value){ 
 	return db->Put(leveldb::WriteOptions(),key,value);
+}
+
+//std::string rand_string(std::string *stp){
+std::string rand_string(){
+	int count;
+	std::string buf;
+	for(count=0;count<(ITEM_SIZE/2);count++){
+			buf+='a'+(rand()%26);
+			buf+='a'+(count%26);
+	}
+	//*stp+=buf;
+	return buf;
 }
 
 void* bench(void *vp)
@@ -89,11 +107,13 @@ void* bench(void *vp)
 	leveldb::Options options;
 	options.create_if_missing = true;
 	leveldb::Status status;
+	srand((unsigned)time(NULL)+p->thread_num);
+
 	//leveldb::Status status = leveldb::DB::Open(options,dbpath,&db);
 
 	//assert(status.ok());
 	switch(p->set_or_get){
-		case 1:
+		case 1://set only
 			for(int count=0;count<OP_NUM;count++)
 			{
 
@@ -101,9 +121,10 @@ void* bench(void *vp)
 				std::ostringstream sstream;
 				sstream << ran;
 				key = sstream.str();
-
+				ran = rand()%VALUE_RANGE;
 				gettimeofday(&s, NULL);
-				status = myput(db,key,data[ran]);
+				//status = myput(db,key,rand_string());
+				status = myput(db,key,p->value_set[ran%VALUE_RANGE]);
 				gettimeofday(&e, NULL);
 				
 				assert(status.ok());
@@ -114,15 +135,20 @@ void* bench(void *vp)
 				//assert(status.ok());
 			}
 			break;
-		case 2:
+		case 2://get only
 
 			for(int count=0;count<OP_NUM;count++)
 			{
+
+				int ran = rand()%KEY_RANGE;	
+				std::ostringstream gstream;
+				gstream << ran;
+				key = gstream.str();
 				status = myget(db,key,&gvalue);
 				assert(status.ok());
 			}
 			break;
-		case 3:
+		case 3://set&get
 			for(int count=0;count<OP_NUM;count++)
 			{
 				//int ran = count%KEY_RANGE;
@@ -132,7 +158,9 @@ void* bench(void *vp)
 				key = sstream.str();
 
 				gettimeofday(&s, NULL);
-				status = myput(db,key,data[ran]);
+				//status = myput(db,key,rand_string());
+				//status = myput(db,key,data[ran]);
+				status = myput(db,key,p->value_set[ran%VALUE_RANGE]);
 				gettimeofday(&e, NULL);
 				
 				assert(status.ok());
@@ -158,13 +186,15 @@ void* bench(void *vp)
 				//printf("now %d, %d\n",count,ran);
 			}
 			break;
-		case 4:// set data
+		case 4:// preset data
 			for(int count=0;count<KEY_RANGE;count++)
 			{
 				std::ostringstream sstream;
 				sstream << count;
 				key = sstream.str();
-				status = myput(db,key,data[count]);
+				//status = myput(db,key,rand_string());
+				//status = myput(db,key,data[count]);
+				status = myput(db,key,p->value_set[count%VALUE_RANGE]);
 				assert(status.ok());
 				//printf("now %d/%d\n",count,KEY_RANGE);
 			}
@@ -184,8 +214,10 @@ void* bench(void *vp)
 				sstream << ran;
 				key = sstream.str();
 
-				status = myput(db,key,data[ran]);
-				
+				//status = myput(db,key,rand_string());
+				//status = myput(db,key,data[ran]);
+				status = myput(db,key,p->value_set[ran%VALUE_RANGE]);
+
 				assert(status.ok());
 				thr++;
 				if (time(&next) != last){
@@ -219,7 +251,7 @@ void g_dataset(void *vdataset)
 	std::vector<std::string> *dataset=(std::vector<std::string>*)vdataset;
 	std::string rstring;
 	srand( (unsigned)time( NULL ) );
-	for(int count=0;count<KEY_RANGE;count++){
+	for(int count=0;count<VALUE_RANGE;count++){
 		for(int c=0;c<ITEM_SIZE;c++)
 		{
 			rstring+='a'+(rand()%26);
@@ -337,7 +369,12 @@ int main(int argc,char *argv[])
 	leveldb::Status status = leveldb::DB::Open(options,dbpath,&db);
 	assert(status.ok());
 
-	g_dataset(&data);
+	//create dataset(value)
+	for(count=0;count<PROCESS_NUM;count++)
+        {
+		g_dataset(&(vpd[count].value_set));
+	}
+	//g_dataset(&data);
 
 	// setdata
 	////////////////////////////////////////////////////////
@@ -346,6 +383,7 @@ int main(int argc,char *argv[])
 	{
 		vpd[count].db=db;
 		vpd[count].set_or_get=4;
+		vpd[count].thread_num=count;
 		pthread_create(&plist[count] , NULL ,&bench ,(void *)&vpd[count]);
  		
 	}
@@ -362,6 +400,7 @@ int main(int argc,char *argv[])
 	{
 		vpd[count].db=db;
 		vpd[count].set_or_get=set_or_get;
+		vpd[count].thread_num=count;
 		pthread_create(&plist[count] , NULL ,&bench ,(void *)&vpd[count]);
  		
 	}
